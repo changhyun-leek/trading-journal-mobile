@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0e13">
+<title>트레이딩 저널</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+<style>
+  :root{
+    --bg:#0b0e13; --panel:#141920; --panel2:#1b212b; --line:#2a323f;
+    --fg:#e6ebf2; --dim:#8b97a8; --accent:#f5a623;
+    --up:#3ddc97; --down:#ff5f6d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
+  .wrap{max-width:720px;margin:0 auto;padding:14px 14px 40px}
+  h1{font-size:17px;margin:0;letter-spacing:-.2px}
+  .mono{font-family:"SF Mono",Consolas,"Cascadia Mono",monospace;font-variant-numeric:tabular-nums}
+
+  header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:none}
+  .dot.on{background:var(--up);box-shadow:0 0 8px var(--up)}
+  .dot.off{background:var(--down)}
+  .stamp{margin-left:auto;font-size:11px;color:var(--dim)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:12px}
+  .card h2{font-size:12px;color:var(--dim);margin:0 0 10px;font-weight:600;
+    letter-spacing:.08em;text-transform:uppercase}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .stat{background:var(--panel2);border-radius:10px;padding:10px 12px}
+  .stat .k{font-size:11px;color:var(--dim);margin-bottom:3px}
+  .stat .v{font-size:19px;font-weight:600}
+  .up{color:var(--up)} .down{color:var(--down)}
+
+  .pos{border-top:1px solid var(--line);padding:11px 0}
+  .pos:first-of-type{border-top:none}
+  .pos .top{display:flex;align-items:baseline;gap:8px}
+  .sym{font-weight:700;font-size:15px}
+  .tag{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:700;letter-spacing:.04em}
+  .tag.buy{background:rgba(61,220,151,.15);color:var(--up)}
+  .tag.sell{background:rgba(255,95,109,.15);color:var(--down)}
+  .pos .pnl{margin-left:auto;font-weight:700;font-size:16px}
+  .pos .sub{font-size:11.5px;color:var(--dim);margin-top:5px;display:flex;
+    flex-wrap:wrap;gap:4px 14px}
+
+  .day{border-top:1px solid var(--line)}
+  .day:first-of-type{border-top:none}
+  .day summary{padding:11px 2px;cursor:pointer;display:flex;align-items:center;
+    gap:10px;list-style:none}
+  .day summary::-webkit-details-marker{display:none}
+  .day summary .d{font-weight:600;font-size:14px}
+  .day summary .c{font-size:11px;color:var(--dim)}
+  .day summary .p{margin-left:auto;font-weight:700}
+  .trade{background:var(--panel2);border-radius:9px;padding:9px 11px;margin:6px 0}
+  .trade .r1{display:flex;gap:8px;align-items:baseline}
+  .trade .r2{font-size:11.5px;color:var(--dim);margin-top:4px;
+    display:flex;flex-wrap:wrap;gap:3px 12px}
+  .note{font-size:12px;color:var(--dim);background:var(--panel2);border-radius:9px;
+    padding:9px 11px;margin:6px 0;white-space:pre-wrap;line-height:1.5}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;
+    padding:4px 9px;border-radius:999px;background:var(--panel2);color:var(--dim)}
+  .badge.warn{background:rgba(245,166,35,.14);color:var(--accent)}
+  .badge.bad{background:rgba(255,95,109,.14);color:var(--down)}
+  .badge.good{background:rgba(61,220,151,.13);color:var(--up)}
+  .badges{display:flex;flex-wrap:wrap;gap:7px}
+
+  input,button{font:inherit}
+  input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--fg);margin-bottom:9px}
+  button{width:100%;padding:12px;border-radius:10px;border:none;font-weight:700;
+    background:var(--accent);color:#1a1205;cursor:pointer}
+  button.ghost{background:transparent;color:var(--dim);border:1px solid var(--line);
+    font-weight:500;padding:9px}
+  .err{color:var(--down);font-size:12.5px;margin:8px 0;min-height:1em}
+  .empty{color:var(--dim);font-size:13px;text-align:center;padding:18px 0}
+  .foot{text-align:center;font-size:11px;color:var(--dim);margin-top:18px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login" style="display:none">
+    <div class="card" style="margin-top:60px">
+      <h2>트레이딩 저널</h2>
+      <input id="email" type="email" placeholder="이메일" autocomplete="username">
+      <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password">
+      <div class="err" id="loginErr"></div>
+      <button id="btnLogin">로그인</button>
+      <p class="foot">이 화면은 본인 계정만 데이터를 볼 수 있습니다.<br>
+        서버 정책(RLS)으로 차단되어 있어 주소를 알아도 열람할 수 없습니다.</p>
+    </div>
+  </div>
+
+  <div id="app" style="display:none">
+    <header>
+      <span class="dot" id="dotPc"></span>
+      <h1>트레이딩 저널</h1>
+      <span class="stamp" id="stamp">—</span>
+    </header>
+
+    <div class="card">
+      <h2>상태</h2>
+      <div class="badges" id="statusBadges"></div>
+    </div>
+
+    <div class="card" id="accountCard">
+      <h2>계좌</h2>
+      <div class="grid" id="accountGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>현재 포지션 <span id="posCount" style="color:var(--dim)"></span></h2>
+      <div id="positions"></div>
+    </div>
+
+    <div class="card">
+      <h2>거래 기록</h2>
+      <div id="journal"></div>
+    </div>
+
+    <div class="card" id="bridgeCard" style="display:none">
+      <h2>ORB 협업 브리지</h2>
+      <div id="bridge"></div>
+    </div>
+
+    <button class="ghost" id="btnLogout">로그아웃</button>
+    <p class="foot" id="foot"></p>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = "https://zzavmguguvuqgdblmkcj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_VY0sNxSFQgHMSItmR5q5pw_4tpdrxWb";
+const REFRESH_MS = 20000;
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+let timer = null;
+
+const nf = n => (n == null || isNaN(n)) ? "—"
+  : Number(n).toLocaleString("ko-KR", {minimumFractionDigits:2, maximumFractionDigits:2});
+const money = n => (n == null || isNaN(n)) ? "—"
+  : (n > 0 ? "+" : "") + nf(n);
+const cls = n => n > 0 ? "up" : n < 0 ? "down" : "";
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function ago(iso){
+  if(!iso) return "—";
+  const s = Math.floor((Date.now() - new Date(iso).getTime())/1000);
+  if(s < 0) return "방금";
+  if(s < 60) return `${s}초 전`;
+  if(s < 3600) return `${Math.floor(s/60)}분 전`;
+  if(s < 86400) return `${Math.floor(s/3600)}시간 전`;
+  return `${Math.floor(s/86400)}일 전`;
+}
+
+// ── 화면 전환 ──────────────────────────────────────────────
+async function boot(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ showApp(); } else { showLogin(); }
+}
+function showLogin(){
+  $("login").style.display = ""; $("app").style.display = "none";
+  if(timer){ clearInterval(timer); timer = null; }
+}
+function showApp(){
+  $("login").style.display = "none"; $("app").style.display = "";
+  load();
+  if(timer) clearInterval(timer);
+  timer = setInterval(load, REFRESH_MS);
+}
+
+$("btnLogin").onclick = async () => {
+  $("loginErr").textContent = "";
+  const {error} = await sb.auth.signInWithPassword({
+    email: $("email").value.trim(), password: $("pw").value});
+  if(error){ $("loginErr").textContent = "로그인 실패 — " + error.message; return; }
+  $("pw").value = "";
+  showApp();
+};
+$("pw").addEventListener("keydown", e => { if(e.key === "Enter") $("btnLogin").click(); });
+$("btnLogout").onclick = async () => { await sb.auth.signOut(); showLogin(); };
+
+// ── 데이터 ────────────────────────────────────────────────
+async function load(){
+  const [live, journal] = await Promise.all([
+    sb.from("trading_live").select("*").eq("id",1).maybeSingle(),
+    sb.from("trading_journal").select("*").order("trade_date",{ascending:false}).limit(60),
+  ]);
+
+  if(live.error && (live.error.code === "PGRST301" || live.error.message?.includes("JWT"))){
+    showLogin(); return;
+  }
+  renderLive(live.data);
+  renderJournal(journal.data || []);
+}
+
+function renderLive(d){
+  if(!d){
+    $("statusBadges").innerHTML =
+      '<span class="badge bad">데이터 없음 — PC 동기화가 한 번도 실행되지 않았습니다</span>';
+    return;
+  }
+  const stale = (Date.now() - new Date(d.updated_at).getTime()) > 5*60*1000;
+  const pcOn = d.pc_online && !stale;
+
+  $("dotPc").className = "dot " + (pcOn ? "on" : "off");
+  $("stamp").textContent = ago(d.updated_at) + " 갱신";
+
+  const g = d.guardian || {}, t = d.today || {};
+  const b = [];
+  b.push(`<span class="badge ${pcOn?"good":"bad"}">PC ${pcOn?"켜짐":"꺼짐"}</span>`);
+  b.push(`<span class="badge ${d.mt5_online?"good":""}">MT5 ${d.mt5_online?"연결됨":"꺼짐"}</span>`);
+  if(g.locked)
+    b.push(`<span class="badge bad">🔒 잠금${g.locked_until?" · 해제 "+esc(g.locked_until):""}</span>`);
+  else if(g.trade_mode_on)
+    b.push(`<span class="badge good">트레이드 모드 ${esc(g.trade_mode||"")}${
+      g.ea_name?" · "+esc(g.ea_name):""}</span>`);
+  else
+    b.push('<span class="badge">트레이드 모드 꺼짐</span>');
+  if(t.closed_count)
+    b.push(`<span class="badge ${t.realized_pnl>=0?"good":"bad"}">오늘 ${
+      t.closed_count}거래 ${money(t.realized_pnl)}</span>`);
+  if(stale) b.push('<span class="badge warn">5분 이상 갱신 없음</span>');
+  $("statusBadges").innerHTML = b.join("");
+
+  const a = d.account;
+  $("accountCard").style.display = a ? "" : "none";
+  if(a){
+    $("accountGrid").innerHTML = `
+      <div class="stat"><div class="k">잔고</div>
+        <div class="v mono">${nf(a.balance)}</div></div>
+      <div class="stat"><div class="k">자산(Equity)</div>
+        <div class="v mono">${nf(a.equity)}</div></div>
+      <div class="stat"><div class="k">평가손익</div>
+        <div class="v mono ${cls(a.profit)}">${money(a.profit)}</div></div>
+      <div class="stat"><div class="k">여유증거금</div>
+        <div class="v mono">${nf(a.margin_free)}</div></div>`;
+    $("foot").textContent =
+      `${a.server||""} · ${a.login_masked||""} · ${a.currency||""}`;
+  }
+
+  const ps = d.positions || [];
+  $("posCount").textContent = ps.length ? `(${ps.length})` : "";
+  $("positions").innerHTML = ps.length ? ps.map(p => `
+    <div class="pos">
+      <div class="top">
+        <span class="sym">${esc(p.symbol)}</span>
+        <span class="tag ${p.dir === "BUY" ? "buy" : "sell"}">${esc(p.dir)}</span>
+        <span class="mono" style="font-size:12px;color:var(--dim)">${p.volume} lot</span>
+        <span class="pnl mono ${cls(p.profit)}">${money(p.profit)}</span>
+      </div>
+      <div class="sub mono">
+        <span>진입 ${nf(p.price_open)}</span>
+        <span>현재 ${nf(p.price_current)}</span>
+        <span>SL ${p.sl ? nf(p.sl) : "없음"}</span>
+        <span>TP ${p.tp ? nf(p.tp) : "없음"}</span>
+        ${p.swap ? `<span>스왑 ${money(p.swap)}</span>` : ""}
+      </div>
+    </div>`).join("")
+    : `<div class="empty">${d.mt5_online ? "열린 포지션이 없습니다"
+        : "MT5가 꺼져 있어 확인할 수 없습니다"}</div>`;
+
+  const br = d.bridge;
+  if(br && br.requests && br.requests.length){
+    $("bridgeCard").style.display = "";
+    $("bridge").innerHTML = br.requests.map(r => `
+      <div class="pos"><div class="top">
+        <span class="sym" style="font-size:13px">${esc(r.id)}</span>
+        <span class="badge ${r.responded?"good":r.claimed_by?"warn":""}">${
+          r.responded ? "응답 완료" : r.claimed_by ? "처리 중" : "대기"}</span>
+      </div><div class="sub">${esc(r.title)}</div></div>`).join("");
+  } else { $("bridgeCard").style.display = "none"; }
+}
+
+function renderJournal(rows){
+  if(!rows.length){ $("journal").innerHTML = '<div class="empty">기록이 없습니다</div>'; return; }
+  $("journal").innerHTML = rows.map((r,i) => {
+    const s = r.summary || {};
+    const trades = (r.trades || []).map(t => `
+      <div class="trade">
+        <div class="r1">
+          <span class="sym" style="font-size:13.5px">${esc(t.ticker)}</span>
+          <span class="tag ${String(t.dir).toUpperCase().startsWith("B")||t.dir==="롱"
+            ?"buy":"sell"}">${esc(t.dir)}</span>
+          <span class="pnl mono ${cls(Number(t.pnl))}"
+            style="margin-left:auto">${money(Number(t.pnl))}</span>
+        </div>
+        <div class="r2 mono">
+          ${t.entry ? `<span>진입 ${esc(t.entry)}</span>` : ""}
+          ${t.exit ? `<span>청산 ${esc(t.exit)}</span>` : ""}
+          ${t.qty ? `<span>${esc(t.qty)} lot</span>` : ""}
+          ${t.setup ? `<span>${esc(t.setup)}</span>` : ""}
+          ${t.emo ? `<span>${esc(t.emo)}</span>` : ""}
+        </div>
+        ${t.note ? `<div class="r2" style="color:var(--dim)">${esc(t.note)}</div>` : ""}
+      </div>`).join("");
+    return `<details class="day" ${i===0?"open":""}>
+      <summary>
+        <span class="d">${esc(r.trade_date)}</span>
+        <span class="c">${s.count||0}거래${
+          s.wins!=null?` · ${s.wins}승 ${s.losses}패`:""}</span>
+        <span class="p mono ${cls(s.pnl)}">${money(s.pnl)}</span>
+      </summary>
+      ${trades || '<div class="empty">거래 없음</div>'}
+      ${r.day_note ? `<div class="note">${esc(r.day_note)}</div>` : ""}
+    </details>`;
+  }).join("");
+}
+
+sb.auth.onAuthStateChange((e) => { if(e === "SIGNED_OUT") showLogin(); });
+document.addEventListener("visibilitychange", () => {
+  if(!document.hidden && $("app").style.display !== "none") load();
+});
+boot();
+</script>
+</body>
+</html>

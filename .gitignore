@@ -1,0 +1,5 @@
+# 이 저장소에는 index.html 만 둔다. 자격증명이 든 파일이 실수로도 들어가지 않게 막는다.
+*config*.json
+*secret*
+*.env
+.sync_state.json
