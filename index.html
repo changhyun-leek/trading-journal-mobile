@@ -124,11 +124,6 @@
       <div id="journal"></div>
     </div>
 
-    <div class="card" id="bridgeCard" style="display:none">
-      <h2>ORB 협업 브리지</h2>
-      <div id="bridge"></div>
-    </div>
-
     <button class="ghost" id="btnLogout">로그아웃</button>
     <p class="foot" id="foot"></p>
   </div>
@@ -270,16 +265,6 @@ function renderLive(d){
     : `<div class="empty">${d.mt5_online ? "열린 포지션이 없습니다"
         : "MT5가 꺼져 있어 확인할 수 없습니다"}</div>`;
 
-  const br = d.bridge;
-  if(br && br.requests && br.requests.length){
-    $("bridgeCard").style.display = "";
-    $("bridge").innerHTML = br.requests.map(r => `
-      <div class="pos"><div class="top">
-        <span class="sym" style="font-size:13px">${esc(r.id)}</span>
-        <span class="badge ${r.responded?"good":r.claimed_by?"warn":""}">${
-          r.responded ? "응답 완료" : r.claimed_by ? "처리 중" : "대기"}</span>
-      </div><div class="sub">${esc(r.title)}</div></div>`).join("");
-  } else { $("bridgeCard").style.display = "none"; }
 }
 
 function renderJournal(rows){
